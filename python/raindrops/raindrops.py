@@ -6,13 +6,8 @@ sounds = {
 def convert(number):
     result = ""
 
-    if number%3 == 0:
-        result += sounds[3]
-    if number%5 ==0:
-        result += sounds[5]
-    if number%7 ==0:
-        result += sounds[7]
+    for n in [3,5,7]:
+        if number % n ==0:
+            result += sounds[n]
     
-    if result == "":
-        result = str(number)
-    return result
+    return (result,str(number))[result == '']
