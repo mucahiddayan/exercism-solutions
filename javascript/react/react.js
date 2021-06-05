@@ -4,31 +4,106 @@
 //
 
 export class InputCell {
+  #value;
+  #subscribers = [];
   constructor(value) {
-    throw new Error('Remove this statement and implement this function');
+    this.setValue(value);
   }
 
   setValue(value) {
-    throw new Error('Remove this statement and implement this function');
+    this.#value = value;
+    //TODO: inform ComputeCell about value change
+    this.#subscribers.forEach((cb) => {
+      if (typeof cb === "function") {
+        cb();
+      }
+    });
+  }
+
+  subscribe(subscriber) {
+    if (typeof subscriber !== "function") {
+      throw new TypeError("Subscription parameter must be a function");
+    }
+    this.#subscribers.push(subscriber);
+  }
+
+  get value() {
+    return this.#value;
   }
 }
 
 export class ComputeCell {
+  #fn;
+  #inputCells;
+  #value;
+  #subscribers = [];
+  #callbacks = new Map();
   constructor(inputCells, fn) {
-    throw new Error('Remove this statement and implement this function');
+    if (typeof fn !== "function") {
+      throw new TypeError("Fn must be a valid function");
+    }
+    this.#fn = fn;
+    this.#inputCells = inputCells;
+    this.#computeValue(true);
+    this.#observeChanges();
+  }
+
+  #observeChanges() {
+    this.#inputCells.forEach((ic) => {
+      ic.subscribe(this.#computeValue.bind(this));
+    });
+  }
+
+  subscribe(subscriber) {
+    this.#subscribers.push(subscriber);
+  }
+
+  #computeValue() {
+    this.#setValue(this.#fn(this.#inputCells));
+  }
+
+  #setValue(value) {
+    const oldValue = this.#value;
+    this.#value = value;
+    this.#subscribers.forEach((cb, i) => {
+      cb();
+    });
+    if (value !== oldValue) {
+      this.#callbacks.forEach((cb) => {
+        cb.run(this);
+      });
+    }
   }
 
   addCallback(cb) {
-    throw new Error('Remove this statement and implement this function');
+    if (cb instanceof CallbackCell) {
+      cb.id = Date.now() + this.#callbacks.size;
+      this.#callbacks.set(cb.id, cb);
+    }
   }
 
   removeCallback(cb) {
-    throw new Error('Remove this statement and implement this function');
+    this.#callbacks.delete(cb.id);
+  }
+
+  get value() {
+    return this.#value;
   }
 }
 
 export class CallbackCell {
+  #fn;
+  #values = [];
   constructor(fn) {
-    throw new Error('Remove this statement and implement this function');
+    this.#fn = fn;
+  }
+
+  get values() {
+    return this.#values;
+  }
+
+  run(inputcell) {
+    const result = this.#fn(inputcell);
+    this.#values.push(result);
   }
 }
