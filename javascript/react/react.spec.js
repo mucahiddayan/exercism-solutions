@@ -187,25 +187,21 @@ describe("React module", () => {
       [plusOne, minusOne2],
       (inputs) => inputs[0].value * inputs[1].value
     );
-    console.log("output before", output.value);
 
     const callback1 = new CallbackCell((cell) => cell.value);
     output.addCallback(callback1);
 
     inputCell.setValue(4);
-
     expect(callback1.values).toEqual([10]);
   });
 
-  test.only("callbacks should not be called if dependencies change but output value doesn't change", () => {
+  test("callbacks should not be called if dependencies change but output value doesn't change", () => {
     const inputCell = new InputCell(1);
     const plusOne = new ComputeCell([inputCell], ([input]) => input.value + 1);
-    console.log("plusOne", plusOne.value);
     const minusOne = new ComputeCell([inputCell], ([input]) => input.value - 1);
-    console.log("minusOne", minusOne.value);
     const alwaysTwo = new ComputeCell(
       [plusOne, minusOne],
-      ([one, two]) => (console.log(one.value, two.value), one.value - two.value)
+      ([one, two]) => one.value - two.value
     );
     const callback = new CallbackCell((cell) => cell.value);
     alwaysTwo.addCallback(callback);

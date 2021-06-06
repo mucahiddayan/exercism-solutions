@@ -1,109 +1,80 @@
-//
-// This is only a SKELETON file for the 'React' exercise. It's been provided as a
-// convenience to get you started writing code faster.
-//
-
 export class InputCell {
   #value;
-  #subscribers = [];
+  #listeners = [];
   constructor(value) {
     this.setValue(value);
   }
 
   setValue(value) {
     this.#value = value;
-    //TODO: inform ComputeCell about value change
-    this.#subscribers.forEach((cb) => {
-      if (typeof cb === "function") {
-        cb();
-      }
-    });
+    this.#listeners.forEach(this.#run.bind(this));
   }
 
-  subscribe(subscriber) {
-    if (typeof subscriber !== "function") {
-      throw new TypeError("Subscription parameter must be a function");
-    }
-    this.#subscribers.push(subscriber);
+  addListener(cc) {
+    this.#listeners.push(cc);
   }
 
   get value() {
     return this.#value;
+  }
+
+  #run(fn) {
+    return fn();
   }
 }
 
 export class ComputeCell {
-  #fn;
-  #inputCells;
   #value;
-  #subscribers = [];
-  #callbacks = new Map();
-  constructor(inputCells, fn) {
-    if (typeof fn !== "function") {
-      throw new TypeError("Fn must be a valid function");
+  #fn;
+  #listeners = [];
+  #callbacks = [];
+  constructor(cells, fn) {
+    this.#fn = () => fn(cells);
+    this.#value = this.#fn();
+    cells.forEach((c) => c.addListener(this.computeValue.bind(this)));
+  }
+
+  addListener(cc) {
+    this.#listeners.push(cc);
+  }
+
+  computeValue() {
+    if (this.#value !== this.value) {
+      this.#callbacks.forEach((cb) => cb.update(this));
+      this.#listeners.forEach(this.#run.bind(this));
     }
-    this.#fn = fn;
-    this.#inputCells = inputCells;
-    this.#computeValue(true);
-    this.#observeChanges();
   }
 
-  #observeChanges() {
-    this.#inputCells.forEach((ic) => {
-      ic.subscribe(this.#computeValue.bind(this));
-    });
-  }
-
-  subscribe(subscriber) {
-    this.#subscribers.push(subscriber);
-  }
-
-  #computeValue() {
-    this.#setValue(this.#fn(this.#inputCells));
-  }
-
-  #setValue(value) {
-    const oldValue = this.#value;
-    this.#value = value;
-    this.#subscribers.forEach((cb, i) => {
-      cb();
-    });
-    if (value !== oldValue) {
-      this.#callbacks.forEach((cb) => {
-        cb.run(this);
-      });
-    }
+  #run(fn) {
+    return fn();
   }
 
   addCallback(cb) {
-    if (cb instanceof CallbackCell) {
-      cb.id = Date.now() + this.#callbacks.size;
-      this.#callbacks.set(cb.id, cb);
-    }
+    this.#callbacks.push(cb);
   }
 
   removeCallback(cb) {
-    this.#callbacks.delete(cb.id);
+    this.#callbacks = this.#callbacks.filter((c) => c !== cb);
   }
 
   get value() {
-    return this.#value;
+    return (this.#value = this.#fn());
   }
 }
 
 export class CallbackCell {
-  #fn;
   #values = [];
+  #fn;
   constructor(fn) {
     this.#fn = fn;
+    this.counter = 0;
+  }
+
+  update(cc) {
+    this.#values.push(this.#fn(cc));
   }
 
   get values() {
     return this.#values;
-  }
-
-  run(inputcell) {
-    const result = this.#fn(inputcell);
-    this.#values.push(result);
   }
 }
